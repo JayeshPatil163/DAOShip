@@ -5,7 +5,8 @@
 ![Contributions](https://img.shields.io/badge/contributions-welcome-brightgreen)
 
 > **Launch your DAO in under 5 minutes — no coding required.**  
-> The first no-code DAO creation platform built on **Algorand**, empowering communities, startups, and organizations to govern transparently, securely, and at near-zero cost.
+> The first no-code DAO creation platform built on **Algorand**, empowering communities, startups, and organizations to govern transparently, securely, and at low cost.
+
 
 ---
 
@@ -61,3 +62,6 @@ Algorand Smart Contracts (Governance Logic)
 Algorand Blockchain (Voting, Funds, History)
      ↘
   IPFS (Document Storage)
+
+
+Stay tuned for future updates

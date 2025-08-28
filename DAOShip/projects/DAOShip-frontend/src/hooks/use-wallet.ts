@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { connectWallet, disconnectWallet, getWalletAddress } from "@/lib/wallet";
 
 interface WalletHook {
   isConnected: boolean;
@@ -11,19 +12,47 @@ export const useWallet = (): WalletHook => {
   const [isConnected, setIsConnected] = useState(false);
   const [walletAddress, setWalletAddress] = useState("");
 
+  // Initialize wallet state on mount
+  useEffect(() => {
+    const initWallet = async () => {
+      try {
+        const address = await getWalletAddress();
+        if (address) {
+          setWalletAddress(address);
+          setIsConnected(true);
+        }
+      } catch (error) {
+        console.error("Failed to initialize wallet:", error);
+        setIsConnected(false);
+        setWalletAddress("");
+      }
+    };
+
+    initWallet();
+  }, []);
+
   const connect = async () => {
     try {
-      // TODO: Implement actual wallet connection logic
+      const address = await connectWallet();
+      setWalletAddress(address);
       setIsConnected(true);
-      setWalletAddress("0x..."); // Placeholder
     } catch (error) {
       console.error("Failed to connect wallet:", error);
+      setIsConnected(false);
+      setWalletAddress("");
+      throw error;
     }
   };
 
-  const disconnect = () => {
-    setIsConnected(false);
-    setWalletAddress("");
+  const disconnect = async () => {
+    try {
+      await disconnectWallet();
+      setIsConnected(false);
+      setWalletAddress("");
+    } catch (error) {
+      console.error("Failed to disconnect wallet:", error);
+      throw error;
+    }
   };
 
   return {

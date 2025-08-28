@@ -5,34 +5,113 @@ const Proposal = require("../models/Proposal");
 const { deployDAOContract } = require("../services/algorand.service");
 
 // Create a new DAO
+// router.post("/", async (req, res) => {
+//   try {
+//     const { name, description, creator, votingPeriod, quorum } = req.body;
+
+//     // Deploy DAO contract using AlgoKit
+//     const contractAddress = await deployDAOContract({
+//       name,
+//       votingPeriod,
+//       quorum,
+//     });
+//     // const contractAddress = "dummy-algo-address";
+
+//     console.log("Received DAO create request with:", req.body);
+
+
+//     const dao = new DAO({
+//       name,
+//       description,
+//       creator,
+//       contractAddress,
+//       votingPeriod,
+//       quorum,
+//       members: [creator],
+//     });
+
+//     await dao.save();
+//     res.status(201).json(dao);
+//   } catch (error) {
+//     res.status(500).json({ message: error.message });
+//   }
+// });
+
+
 router.post("/", async (req, res) => {
   try {
-    const { name, description, creator, votingPeriod, quorum } = req.body;
+    const { 
+      name, 
+      description, 
+      manager, // Changed from 'creator' to 'manager'
+      votePrice,
+      tokenName,
+      tokenSymbol,
+      tokenSupply,
+      votingPeriod, 
+      quorum,
+      minTokens,
+      githubRepo,
+      tokenStrategy,
+      initialDistribution,
+      tokenAllocation,
+      contributionRewards,
+      vestingPeriod,
+      minContributionForVoting,
+      invitedCollaborators
+    } = req.body;
 
+    console.log("Creating DAO with parameters:", {
+      name,
+      description,
+      manager,
+      votePrice});
     // Deploy DAO contract using AlgoKit
     const contractAddress = await deployDAOContract({
       name,
       votingPeriod,
       quorum,
+      // You might want to pass additional contract parameters here
+      votePrice,
+      tokenName,
+      tokenSymbol,
+      tokenSupply,
+      minTokens
     });
     // const contractAddress = "dummy-algo-address";
 
     console.log("Received DAO create request with:", req.body);
 
-
     const dao = new DAO({
       name,
       description,
-      creator,
+      creator: manager, // Map manager to creator if your DAO model uses 'creator'
+      manager, // Add manager field if your model supports it
       contractAddress,
+      votePrice,
+      tokenName,
+      tokenSymbol,
+      tokenSupply,
       votingPeriod,
       quorum,
-      members: [creator],
+      minTokens,
+      githubRepo,
+      tokenStrategy,
+      initialDistribution,
+      tokenAllocation,
+      contributionRewards,
+      vestingPeriod,
+      minContributionForVoting,
+      invitedCollaborators: invitedCollaborators || [], // Handle array of collaborators
+      members: [manager], // Initialize with manager as first member
+      // Add invited collaborators to members if they should be auto-added
+      // members: [manager, ...(invitedCollaborators || [])],
     });
 
     await dao.save();
     res.status(201).json(dao);
   } catch (error) {
+    console.error("Error creating DAO:", error);
     res.status(500).json({ message: error.message });
   }
 });
@@ -58,6 +137,7 @@ router.get("/:id", async (req, res) => {
       return res.status(404).json({ message: "DAO not found" });
     }
     res.json(dao);
+    console.log("Fetched DAO:", dao);
   } catch (error) {
     console.error("Error fetching DAO:", error);
     res.status(500).json({ message: error.message });

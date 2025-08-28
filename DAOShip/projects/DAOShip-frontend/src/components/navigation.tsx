@@ -15,6 +15,8 @@ import {
   Github,
   ExternalLink,
 } from "lucide-react";
+import { GithubAuthProvider, signInWithPopup } from "firebase/auth";
+import { auth } from "@/hooks/firebase"; // Ensure this matches your Firebase configuration file path
 import WalletConnectModal from "@/components/wallet-connect-modal";
 import {
   connectWallet,
@@ -44,11 +46,27 @@ const Navigation = () => {
   // Determine if GitHub is connected
   const isGitHubConnected = !!user;
 
+//   const provider = new GithubAuthProvider();
+//   signInWithPopup(auth, provider).then(async (result) => {
+//   const credential = GithubAuthProvider.credentialFromResult(result);
+//   const token = credential?.accessToken;
+
+//   if (token) {
+//     const response = await fetch('https://api.github.com/user', {
+//       headers: {
+//         Authorization: `Bearer ${token}`
+//       }
+//     });
+//     const data = await response.json();
+//     setActualGitHubUsername(data.login); // this is the actual GitHub username
+//   }
+// });
+  
   useEffect(() => {
     if (user) {
       // Set display name for UI
       setGithubUsername(user.displayName || user.email?.split('@')[0] || 'User');
-
+      console.log('GitHub User:', githubUsername);
       // Extract actual GitHub username from providerData or additionalUserInfo
       // This depends on how your GitHub auth is set up
       const githubProvider = user.providerData?.find(provider => provider.providerId === 'github.com');
@@ -156,11 +174,7 @@ const Navigation = () => {
       }
     } catch (error) {
       console.error('GitHub connection failed:', error);
-      toast({
-        title: "Connection Failed",
-        description: error.message || "Failed to connect to GitHub. Please try again.",
-        variant: "destructive",
-      });
+      
     } finally {
       setGitHubLoading(false);
     }

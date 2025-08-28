@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -16,6 +16,15 @@ import {
   FileText,
   Settings,
   ArrowUpRight,
+  User, // Import User icon for creator/manager
+  Link as LinkIcon, // Import Link icon for github repo
+  Coins, // For token details
+  Github, // For GitHub related displays
+  Code, // For contributions
+  GitCommit, // For commits
+  GitPullRequest, // For pull requests
+  Bug, // For issues
+  MessageSquareText, // For code reviews
 } from "lucide-react";
 import Navigation from "@/components/navigation";
 import Footer from "@/components/footer";
@@ -23,9 +32,9 @@ import GlassmorphicCard from "@/components/ui/glassmorphic-card";
 import GradientButton from "@/components/ui/gradient-button";
 import { getDAO, getDAOProposals } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
-import { getAppClient } from "@/utils/GetAppClient";
 import { useWallet } from "@/hooks/use-wallet";
 
+// Interface definitions (remain the same)
 interface Proposal {
   _id: string;
   title: string;
@@ -38,15 +47,95 @@ interface Proposal {
   abstainVotes: number;
 }
 
+interface GitHubCollaborator {
+  login: string;
+  id: number;
+  node_id: string;
+  avatar_url: string;
+  gravatar_id: string;
+  url: string;
+  html_url: string;
+  followers_url: string;
+  following_url: string;
+  gists_url: string;
+  starred_url: string;
+  subscriptions_url: string;
+  organizations_url: string;
+  repos_url: string;
+  events_url: string;
+  received_events_url: string;
+  type: string;
+  site_admin: boolean;
+  name?: string;
+  email?: string;
+  bio?: string;
+  company?: string;
+  location?: string;
+  contributions?: {
+    commits: number;
+    pullRequests: number;
+    issues: number;
+    codeReviews: number;
+  };
+  allocatedTokens?: number;
+}
+
+interface GitHubContributor {
+  login: string;
+  id: number;
+  node_id: string;
+  avatar_url: string;
+  html_url: string;
+  contributions: number;
+}
+
 interface DAO {
   _id: string;
   name: string;
   description: string;
-  members: any[];
+  creator: { username: string; walletAddress: string; _id: string } | string;
+  manager: string;
+  contractAddress: string;
+  votePrice: number;
+  tokenName: string;
+  tokenSymbol: string;
+  tokenSupply: number;
   votingPeriod: number;
   quorum: number;
+  minTokens: number;
+  githubRepo?: string;
+  tokenStrategy: 'fixed' | 'dynamic' | 'hybrid';
+  initialDistribution: {
+    commits: number;
+    pullRequests: number;
+    issues: number;
+    codeReviews: number;
+  };
+  tokenAllocation: {
+    initialDistribution: number;
+    futureContributors: number;
+    treasury: number;
+  };
+  contributionRewards: {
+    newPR: number;
+    acceptedPR: number;
+    issueCreation: number;
+    codeReview: number;
+  };
+  vestingPeriod: number;
+  minContributionForVoting: number;
+  invitedCollaborators: string[];
+  members: Array<{
+    username?: string;
+    walletAddress: string;
+    _id: string;
+  }>;
+  isActive: boolean;
   createdAt: string;
+  updatedAt: string;
 }
+
+const GITHUB_TOKEN = "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"; // REPLACE WITH YOUR ACTUAL TOKEN OR SECURELY FETCH
 
 const DAODashboard = () => {
   const { id } = useParams<{ id: string }>();
@@ -55,72 +144,178 @@ const DAODashboard = () => {
   const [dao, setDao] = useState<DAO | null>(null);
   const [proposals, setProposals] = useState<Proposal[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isCreatingProposal, setIsCreatingProposal] = useState(false);
+  const [githubContributors, setGithubContributors] = useState<GitHubContributor[]>([]);
+  const [githubCollaborators, setGithubCollaborators] = useState<GitHubCollaborator[]>([]);
+  const [isFetchingGithubData, setIsFetchingGithubData] = useState(false);
+  const [githubDataError, setGithubDataError] = useState<string | null>(null);
+
   const [tabHovered, setTabHovered] = useState("");
   const { toast } = useToast();
+  const { walletAddress } = useWallet();
 
-  useEffect(() => {
-    if (id) {
-      fetchDAOData();
+  // --- START: Move all helper functions and callbacks here ---
+
+  // Helper to parse GitHub repo owner and name from URL
+  const parseGitHubUrl = useCallback((url: string) => {
+    try {
+      const regex = /github\.com\/([^\/]+)\/([^\/]+)/;
+      const match = url.match(regex);
+      if (match) {
+        return {
+          owner: match[1],
+          repo: match[2].replace('.git', '')
+        };
+      }
+      return null;
+    } catch (error) {
+      console.error('Error parsing GitHub URL:', error);
+      return null;
     }
-  }, [id]);
+  }, []);
 
-  // const callGetProposal = async (proposalId: string) => {
-  //   const { activeAddress, transactionSigner } = useWallet();
-  //   const appClient = await getAppClient('O3TYK47UWYDFNWSEXZU574UDTMS4VWIVP2BT6ZK3ECRXAXT4FERPGKFAY4', );
-  //   if (!appClient) {
-  //     // setLoading(false)
-  //     return false
-  //   }
+  // Function to fetch GitHub contributions (simplified for commits)
+  const fetchGitHubUserContributions = useCallback(async (owner: string, repo: string, username: string) => {
+    try {
+      const headers: HeadersInit = { 'Accept': 'application/vnd.github.v3+json' };
+      if (GITHUB_TOKEN) {
+        headers['Authorization'] = `token ${GITHUB_TOKEN}`;
+      } else {
+        console.warn("GitHub Token is not set. API requests might be rate-limited or fail for private repos.");
+      }
 
-  //   // Get fresh suggested parameters right before transaction
-  //   const algosdk = (window as any).algosdk || (await import('algosdk'))
-  //   const algodClient = new algosdk.Algodv2('', 'https://testnet-api.algonode.cloud', '')
-  //   const suggestedParams = await algodClient.getTransactionParams().do()
-  //   console.log('Fresh suggested params:', suggestedParams)
+      const commitsResponse = await fetch(`https://api.github.com/repos/${owner}/${repo}/commits?author=${username}`, { headers });
+      const commitsData = await commitsResponse.json();
+      const numCommits = Array.isArray(commitsData) ? commitsData.length : 0;
 
-  //   // Optional: Reduce the validity window to avoid timing issues
-  //   suggestedParams.lastRound = suggestedParams.firstRound + 10
+      const prsResponse = await fetch(`https://api.github.com/repos/${owner}/${repo}/pulls?state=all&creator=${username}`, { headers });
+      const prsData = await prsResponse.json();
+      const numPRs = Array.isArray(prsData) ? prsData.length : 0;
 
-  //   const assetIdA = BigInt(selectedToken1.id)
-  //   const assetIdB = BigInt(selectedToken2.id)
-  //   console.log('Selected tokens:', selectedToken1, selectedToken2)
-  //   console.log('Asset IDs - A:', assetIdA, 'B:', assetIdB)
-  //   console.log('Fresh suggested params:', suggestedParams)
+      const issuesResponse = await fetch(`https://api.github.com/repos/${owner}/${repo}/issues?state=all&creator=${username}`, { headers });
+      const issuesData = await issuesResponse.json();
+      const numIssues = Array.isArray(issuesData) ? issuesData.length : 0;
 
-  //   const algoAmount = algo(0.01) // Minimum balance requirement for the pool
-  //   console.log('Minimum Algo amount required:', algoAmount)
+      const numCodeReviews = 0; // Placeholder for code reviews
 
-  //   const response = await appClient.send.createPool({
-  //     args: [assetIdA, assetIdB],
-  //     signer: transactionSigner,
-  //     extraFee: algoAmount,
-  //     sender: activeAddress,
-  //   })
+      return {
+        commits: numCommits,
+        pullRequests: numPRs,
+        issues: numIssues,
+        codeReviews: numCodeReviews,
+      };
+    } catch (error) {
+      console.error(`Error fetching contributions for ${username}:`, error);
+      return { commits: 0, pullRequests: 0, issues: 0, codeReviews: 0 };
+    }
+  }, [GITHUB_TOKEN]);
 
-  //   if (response) {
-  //     enqueueSnackbar?.(`Pool created successfully!`, { variant: 'success' })
-  //     setPoolExists(true)
-  //     return true
-  //   }
-  //   return false
-  // } catch (error) {
-  //   console.error('Error creating pool:', error)
-  //   enqueueSnackbar?.(`Error creating pool: ${error instanceof Error ? error.message : 'Unknown error'}`, { variant: 'error' })
-  //   return false
-  // } finally {
-  //   setLoading(false)
-  // }
-  // }
+  // Main function to fetch all GitHub data for the DAO
+  const fetchAllGitHubData = useCallback(async () => {
+    if (!dao?.githubRepo) {
+      setGithubDataError("No GitHub repository linked to this DAO.");
+      setGithubContributors([]);
+      setGithubCollaborators([]);
+      return;
+    }
 
+    const repoInfo = parseGitHubUrl(dao.githubRepo);
+    if (!repoInfo) {
+      setGithubDataError("Invalid GitHub repository URL.");
+      setGithubContributors([]);
+      setGithubCollaborators([]);
+      return;
+    }
 
-  const fetchDAOData = async () => {
+    setIsFetchingGithubData(true);
+    setGithubDataError(null);
+
+    try {
+      const headers: HeadersInit = { 'Accept': 'application/vnd.github.v3+json' };
+      if (GITHUB_TOKEN) {
+        headers['Authorization'] = `token ${GITHUB_TOKEN}`;
+      } else {
+        console.warn("GitHub Token is not set. API requests might be rate-limited or fail for private repos.");
+      }
+
+      const collabsResponse = await fetch(`https://api.github.com/repos/${repoInfo.owner}/${repoInfo.repo}/collaborators`, { headers });
+      if (!collabsResponse.ok) {
+        throw new Error(`Failed to fetch collaborators: ${collabsResponse.status} ${collabsResponse.statusText}`);
+      }
+      const collabsData: GitHubCollaborator[] = await collabsResponse.json();
+
+      const contributorsResponse = await fetch(`https://api.github.com/repos/${repoInfo.owner}/${repoInfo.repo}/contributors`, { headers });
+      if (!contributorsResponse.ok) {
+        throw new Error(`Failed to fetch contributors: ${contributorsResponse.status} ${contributorsResponse.statusText}`);
+      }
+      const contributorsData: GitHubContributor[] = await contributorsResponse.json();
+
+      const combinedUsers: { [login: string]: GitHubCollaborator } = {};
+
+      for (const collab of collabsData) {
+        const userDetailsResponse = await fetch(collab.url, { headers });
+        const userDetails = await userDetailsResponse.json();
+        combinedUsers[collab.login] = { ...collab, ...userDetails };
+      }
+
+      for (const contributor of contributorsData) {
+        if (!combinedUsers[contributor.login]) {
+          const userDetailsResponse = await fetch(contributor.url, { headers });
+          const userDetails = await userDetailsResponse.json();
+          combinedUsers[contributor.login] = { ...contributor, ...userDetails };
+        }
+      }
+
+      let totalPointsAllContributors = 0;
+      for (const user of Object.values(combinedUsers)) {
+        const tempContributions = await fetchGitHubUserContributions(repoInfo.owner, repoInfo.repo, user.login);
+        totalPointsAllContributors +=
+            (tempContributions.commits * (dao?.contributionRewards.newPR || 0)) +
+            (tempContributions.pullRequests * (dao?.contributionRewards.acceptedPR || 0)) +
+            (tempContributions.issues * (dao?.contributionRewards.issueCreation || 0)) +
+            (tempContributions.codeReviews * (dao?.contributionRewards.codeReview || 0));
+      }
+
+      const finalCollaboratorsWithContributions: GitHubCollaborator[] = await Promise.all(
+        Object.values(combinedUsers).map(async (user) => {
+          const contributions = await fetchGitHubUserContributions(repoInfo.owner, repoInfo.repo, user.login);
+
+          const individualContributionPoints =
+            (contributions.commits * (dao?.contributionRewards.newPR || 0)) +
+            (contributions.pullRequests * (dao?.contributionRewards.acceptedPR || 0)) +
+            (contributions.issues * (dao?.contributionRewards.issueCreation || 0)) +
+            (contributions.codeReviews * (dao?.contributionRewards.codeReview || 0));
+
+          let allocatedTokens = 0;
+          if (dao?.tokenStrategy === 'fixed' && dao?.tokenSupply !== undefined && totalPointsAllContributors > 0) {
+            const tokensForInitialDistribution = (dao.tokenAllocation.initialDistribution / 100) * dao.tokenSupply;
+            allocatedTokens = (individualContributionPoints / totalPointsAllContributors) * tokensForInitialDistribution;
+          } else if (dao?.tokenStrategy === 'dynamic') {
+             allocatedTokens = individualContributionPoints;
+          }
+
+          return { ...user, contributions, allocatedTokens };
+        })
+      );
+
+      setGithubCollaborators(finalCollaboratorsWithContributions.sort((a, b) => (b.allocatedTokens || 0) - (a.allocatedTokens || 0)));
+
+    } catch (error) {
+      console.error("Error fetching GitHub data:", error);
+      setGithubDataError(`Failed to fetch GitHub data: ${error.message || String(error)}`);
+    } finally {
+      setIsFetchingGithubData(false);
+    }
+  }, [dao, parseGitHubUrl, fetchGitHubUserContributions]);
+
+  // Main function to fetch DAO data from your backend API
+  const fetchDAOData = useCallback(async () => {
     try {
       const [daoData, proposalsData] = await Promise.all([
         getDAO(id!),
         getDAOProposals(id),
       ]);
-      console.log("daoData fetched");
+      console.log("daoData fetched:", daoData);
+      console.log("proposalsData fetched:", proposalsData);
       setDao(daoData);
       setProposals(proposalsData);
     } catch (error) {
@@ -133,17 +328,40 @@ const DAODashboard = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [id, toast]);
 
-  const handleViewProposal = (proposalId) => {
+  // Handle navigation to view a specific proposal
+  const handleViewProposal = useCallback((proposalId: string) => {
     navigate(`/dao/${id}/proposal/${proposalId}`);
-  };
+  }, [navigate, id]);
 
-  const handleCreateProposal = () => {
+  // Handle navigation to create a new proposal
+  const handleCreateProposal = useCallback(() => {
     navigate(`/dao/${id}/create-proposal`);
-  };
+  }, [navigate, id]);
 
-  // Animation variants
+  // --- END: Move all helper functions and callbacks here ---
+
+
+  // ... (useEffect hooks now come after functions they call)
+
+  useEffect(() => {
+    if (id) {
+      fetchDAOData();
+    }
+  }, [id, fetchDAOData]);
+
+  useEffect(() => {
+    if (activeTab === "members" && dao && dao.githubRepo && !isFetchingGithubData) {
+      if (githubCollaborators.length === 0 || githubDataError) {
+        fetchAllGitHubData();
+      }
+    }
+  }, [activeTab, dao, fetchAllGitHubData, isFetchingGithubData, githubCollaborators.length, githubDataError]);
+
+
+  // ... (rest of the component, including animation variants and render logic, remains the same)
+  // Animation variants (no changes needed)
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
@@ -239,12 +457,12 @@ const DAODashboard = () => {
     );
   }
 
-  const formatDate = (dateString) => {
-    const options = { year: "numeric", month: "short", day: "numeric" };
-    return new Date(dateString).toLocaleDateString();
+  const formatDate = (dateString: string) => {
+    const options: Intl.DateTimeFormatOptions = { year: "numeric", month: "short", day: "numeric" };
+    return new Date(dateString).toLocaleDateString(undefined, options);
   };
 
-  const calculateTimeLeft = (endTime) => {
+  const calculateTimeLeft = (endTime: string) => {
     const end = new Date(endTime);
     const now = new Date();
     const diff = end.getTime() - now.getTime();
@@ -258,17 +476,17 @@ const DAODashboard = () => {
     return `${hours}h left`;
   };
 
-  const getTotalVotes = (proposal) => {
+  const getTotalVotes = (proposal: Proposal) => {
     return proposal.yesVotes + proposal.noVotes + proposal.abstainVotes;
   };
 
-  const getVotePercentage = (voteCount, proposal) => {
+  const getVotePercentage = (voteCount: number, proposal: Proposal) => {
     const total = getTotalVotes(proposal);
     if (total === 0) return 0;
     return (voteCount / total) * 100;
   };
 
-  const getStatusIcon = (status) => {
+  const getStatusIcon = (status: string) => {
     switch (status) {
       case "active":
         return <Activity className="text-blue-400" />;
@@ -290,6 +508,8 @@ const DAODashboard = () => {
         new Date(b.startTime).getTime() - new Date(a.startTime).getTime()
     )
     .slice(0, 5);
+
+  const isDAOAdmin = walletAddress === (dao.creator as any)?.walletAddress || walletAddress === dao.manager;
 
   return (
     <div className="min-h-screen bg-gradient-background">
@@ -496,7 +716,6 @@ const DAODashboard = () => {
                           key={proposal._id}
                           variants={itemVariants}
                           whileHover="hover"
-                          // variants={cardHoverVariants}
                           className="cursor-pointer"
                           onClick={() => handleViewProposal(proposal._id)}
                         >
@@ -652,7 +871,7 @@ const DAODashboard = () => {
               </motion.div>
             )}
 
-            {activeTab === "proposals" && (
+            {activeTab === "proposals" && ( // The proposals tab content
               <motion.div
                 key="proposals"
                 initial={{ opacity: 0, y: 20 }}
@@ -675,6 +894,9 @@ const DAODashboard = () => {
                   </motion.div>
                 </div>
 
+
+
+
                 {proposals.length > 0 ? (
                   <motion.div
                     variants={containerVariants}
@@ -688,7 +910,6 @@ const DAODashboard = () => {
                         variants={itemVariants}
                         custom={index}
                         whileHover="hover"
-                        // variants={cardHoverVariants}
                         className="cursor-pointer"
                         onClick={() => handleViewProposal(proposal._id)}
                       >
@@ -823,63 +1044,246 @@ const DAODashboard = () => {
                 exit={{ opacity: 0, y: -20 }}
                 transition={{ duration: 0.5 }}
               >
-                <h2 className="text-2xl font-bold text-white mb-6">Members</h2>
+                <h2 className="text-2xl font-bold text-white mb-6">DAO Members & Collaborators</h2>
                 <GlassmorphicCard className="p-6">
                   <motion.div
                     variants={containerVariants}
                     initial="hidden"
                     animate="visible"
                   >
-                    <div className="grid grid-cols-1 divide-y divide-white/10">
-                      {dao.members.map((member, index) => (
-                        <motion.div
-                          key={index}
-                          variants={itemVariants}
-                          custom={index}
-                          className="py-4 first:pt-0 last:pb-0"
-                        >
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center">
-                              <div className="h-10 w-10 rounded-full bg-gradient-to-br from-purple-500 to-blue-600 flex items-center justify-center overflow-hidden">
-                                {member.avatar ? (
-                                  <img
-                                    src={member.avatar}
-                                    alt={member.name || member.address}
-                                    className="h-full w-full object-cover"
-                                  />
-                                ) : (
-                                  <span className="text-white font-medium">
-                                    {(member.name || member.address)
-                                      .charAt(0)
-                                      .toUpperCase()}
-                                  </span>
-                                )}
-                              </div>
-                              <div className="ml-3">
-                                <h4 className="text-white font-medium">
-                                  {member.name || "Anonymous Member"}
-                                </h4>
-                                <p className="text-daoship-text-gray text-sm">
-                                  {member.address
-                                    ? `${member.address.substring(
+                    {/* DAO Creator */}
+                    <h3 className="text-xl font-semibold text-white mb-4 border-b border-white/10 pb-2">
+                      DAO Creator
+                    </h3>
+                    <div className="py-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center">
+                          <div className="h-10 w-10 rounded-full bg-gradient-to-br from-purple-500 to-blue-600 flex items-center justify-center overflow-hidden">
+                            <User className="text-white h-5 w-5" />
+                          </div>
+                          <div className="ml-3">
+                            <h4 className="text-white font-medium">
+                              {typeof dao.creator === 'object' ? dao.creator.username : 'Unknown Creator'}
+                              {(typeof dao.creator === 'object' && dao.creator.walletAddress === walletAddress) || (dao.creator === walletAddress) && <span className="text-daoship-primary text-xs ml-2">(You)</span>}
+                            </h4>
+                            <p className="text-daoship-text-gray text-sm">
+                              {typeof dao.creator === 'object'
+                                ? `${dao.creator.walletAddress.substring(0, 6)}...${dao.creator.walletAddress.substring(dao.creator.walletAddress.length - 4)}`
+                                : `${dao.creator.substring(0, 6)}...${dao.creator.substring(dao.creator.length - 4)}`}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="px-3 py-1 bg-yellow-500/20 text-yellow-400 rounded-full text-sm">
+                          Creator
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* DAO Manager */}
+                    <h3 className="text-xl font-semibold text-white mb-4 mt-6 border-b border-white/10 pb-2">
+                      DAO Manager
+                    </h3>
+                    <div className="py-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center">
+                          <div className="h-10 w-10 rounded-full bg-gradient-to-br from-cyan-500 to-teal-600 flex items-center justify-center overflow-hidden">
+                            <User className="text-white h-5 w-5" />
+                          </div>
+                          <div className="ml-3">
+                            <h4 className="text-white font-medium">
+                              {dao.manager === (dao.creator as any)?.walletAddress ? (typeof dao.creator === 'object' ? dao.creator.username : 'DAO Creator') : 'DAO Manager'}
+                              {dao.manager === walletAddress && <span className="text-daoship-primary text-xs ml-2">(You)</span>}
+                            </h4>
+                            <p className="text-daoship-text-gray text-sm">
+                              {`${dao.manager.substring(0, 6)}...${dao.manager.substring(dao.manager.length - 4)}`}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="px-3 py-1 bg-blue-500/20 text-blue-400 rounded-full text-sm">
+                          Manager
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* All Members */}
+                    <h3 className="text-xl font-semibold text-white mb-4 mt-6 border-b border-white/10 pb-2">
+                      All Members ({dao.members.length})
+                    </h3>
+                    {dao.members.length > 0 ? (
+                      <div className="grid grid-cols-1 divide-y divide-white/10">
+                        {dao.members.map((member, index) => (
+                          <motion.div
+                            key={member._id || member.walletAddress || index}
+                            variants={itemVariants}
+                            custom={index}
+                            className="py-4 first:pt-0 last:pb-0"
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center">
+                                <div className="h-10 w-10 rounded-full bg-gradient-to-br from-green-500 to-lime-600 flex items-center justify-center overflow-hidden">
+                                  {member.username ? (
+                                    <span className="text-white font-medium">
+                                      {member.username.charAt(0).toUpperCase()}
+                                    </span>
+                                  ) : (
+                                    <Users className="text-white h-5 w-5" />
+                                  )}
+                                </div>
+                                <div className="ml-3">
+                                  <h4 className="text-white font-medium">
+                                    {member.username || "Anonymous Member"}
+                                    {member.walletAddress === walletAddress && <span className="text-daoship-primary text-xs ml-2">(You)</span>}
+                                  </h4>
+                                  <p className="text-daoship-text-gray text-sm">
+                                    {member.walletAddress
+                                      ? `${member.walletAddress.substring(
                                         0,
                                         6
-                                      )}...${member.address.substring(
-                                        member.address.length - 4
+                                      )}...${member.walletAddress.substring(
+                                        member.walletAddress.length - 4
                                       )}`
-                                    : "No address found"}
-                                </p>
+                                      : "No address found"}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="flex items-center">
+                                <div className="px-3 py-1 bg-white/10 rounded-full text-sm">
+                                  1 Voting Power
+                                </div>
                               </div>
                             </div>
-                            <div className="flex items-center">
-                              <div className="px-3 py-1 bg-white/10 rounded-full text-sm">
-                                {member.votingPower || "1"} Voting Power
+                          </motion.div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-daoship-text-gray text-center py-4">No members in this DAO yet (excluding creator/manager).</p>
+                    )}
+
+                    {/* GitHub Collaborators and Contributors */}
+                    <h3 className="text-xl font-semibold text-white mb-4 mt-6 border-b border-white/10 pb-2">
+                      GitHub Collaborators & Contributors ({githubCollaborators.length})
+                    </h3>
+                    {!dao.githubRepo ? (
+                      <div className="text-daoship-text-gray text-center py-4">
+                        No GitHub repository linked to this DAO to fetch collaborators.
+                      </div>
+                    ) : isFetchingGithubData ? (
+                      <div className="text-center py-8">
+                        <div className="w-10 h-10 border-4 border-t-daoship-primary border-white/30 rounded-full animate-spin mx-auto mb-4" />
+                        <p className="text-white/60">Fetching GitHub data...</p>
+                      </div>
+                    ) : githubDataError ? (
+                      <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-lg mb-4">
+                        <p className="text-red-400 text-sm">{githubDataError}</p>
+                      </div>
+                    ) : githubCollaborators.length > 0 ? (
+                      <div className="grid grid-cols-1 divide-y divide-white/10">
+                        {githubCollaborators.map((collab) => (
+                          <motion.div
+                            key={collab.id}
+                            variants={itemVariants}
+                            className="py-4 first:pt-0 last:pb-0"
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center">
+                                <div className="h-10 w-10 rounded-full overflow-hidden mr-3">
+                                  <img
+                                    src={collab.avatar_url}
+                                    alt={`${collab.login}'s avatar`}
+                                    className="w-full h-full object-cover"
+                                  />
+                                </div>
+                                <div className="flex-1">
+                                  <h4 className="text-white font-medium">
+                                    {collab.name || collab.login}
+                                    {collab.site_admin && <span className="text-yellow-400 text-xs ml-2">(Admin)</span>}
+                                    {dao.invitedCollaborators?.includes(collab.login) && <span className="text-purple-400 text-xs ml-2">(Invited)</span>}
+                                  </h4>
+                                  <p className="text-daoship-text-gray text-sm">
+                                    <a href={collab.html_url} target="_blank" rel="noopener noreferrer" className="hover:underline">
+                                      @{collab.login}
+                                    </a>
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="flex flex-col items-end text-sm">
+                                <div className="flex items-center text-daoship-text-gray">
+                                  <Coins className="w-4 h-4 mr-1 text-daoship-mint" />
+                                  <span className="font-bold text-white mr-1">{collab.allocatedTokens?.toLocaleString(undefined, { maximumFractionDigits: 2 }) || 0}</span> {dao.tokenSymbol}
+                                </div>
+                                {collab.contributions && (
+                                  <div className="text-xs text-daoship-text-gray mt-1 text-right">
+                                    <span className="flex items-center justify-end">
+                                      <GitCommit className="w-3 h-3 mr-1" /> {collab.contributions.commits} commits
+                                    </span>
+                                    <span className="flex items-center justify-end mt-0.5">
+                                      <GitPullRequest className="w-3 h-3 mr-1" /> {collab.contributions.pullRequests} PRs
+                                    </span>
+                                    <span className="flex items-center justify-end mt-0.5">
+                                      <Bug className="w-3 h-3 mr-1" /> {collab.contributions.issues} issues
+                                    </span>
+                                    {/* <span className="flex items-center justify-end mt-0.5">
+                                      <MessageSquareText className="w-3 h-3 mr-1" /> {collab.contributions.codeReviews} reviews
+                                    </span> */}
+                                  </div>
+                                )}
                               </div>
                             </div>
-                          </div>
-                        </motion.div>
-                      ))}
-                    </div>
+                          </motion.div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-daoship-text-gray text-center py-4">No GitHub collaborators or contributors found for this repository.</p>
+                    )}
+
+                    {/* This section now specifically lists invited collaborators who are NOT also detected as GitHub repo contributors/collaborators */}
+                    {dao.invitedCollaborators && dao.invitedCollaborators.length > 0 && (
+                      <>
+                        {(() => {
+                          const nonGithubInvited = dao.invitedCollaborators.filter(invitedLogin =>
+                            !githubCollaborators.some(githubCollab => githubCollab.login === invitedLogin)
+                          );
+                          if (nonGithubInvited.length === 0) return null;
+
+                          return (
+                            <>
+                              <h3 className="text-xl font-semibold text-white mb-4 mt-6 border-b border-white/10 pb-2">
+                                Other Invited Collaborators ({nonGithubInvited.length})
+                              </h3>
+                              <div className="grid grid-cols-1 divide-y divide-white/10">
+                                {nonGithubInvited.map((githubUsername, index) => (
+                                  <motion.div
+                                    key={githubUsername || `invited-${index}`}
+                                    variants={itemVariants}
+                                    custom={index}
+                                    className="py-4 first:pt-0 last:pb-0"
+                                  >
+                                    <div className="flex items-center justify-between">
+                                      <div className="flex items-center">
+                                        <div className="h-10 w-10 rounded-full bg-gradient-to-br from-pink-500 to-red-600 flex items-center justify-center overflow-hidden">
+                                          <Github className="text-white h-5 w-5" />
+                                        </div>
+                                        <div className="ml-3">
+                                          <h4 className="text-white font-medium">
+                                            {githubUsername}
+                                          </h4>
+                                          <p className="text-daoship-text-gray text-sm">
+                                            GitHub Username (Pending Acceptance)
+                                          </p>
+                                        </div>
+                                      </div>
+                                      <div className="px-3 py-1 bg-purple-500/20 text-purple-400 rounded-full text-sm">
+                                        Pending Invitation
+                                      </div>
+                                    </div>
+                                  </motion.div>
+                                ))}
+                              </div>
+                            </>
+                          );
+                        })()}
+                      </>
+                    )}
                   </motion.div>
                 </GlassmorphicCard>
               </motion.div>
@@ -942,6 +1346,139 @@ const DAODashboard = () => {
                             className="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-white"
                           />
                         </div>
+                        <div>
+                          <label className="block text-daoship-text-gray text-sm mb-1">
+                            Contract Address
+                          </label>
+                          <input
+                            type="text"
+                            value={dao.contractAddress}
+                            disabled
+                            className="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-white"
+                          />
+                        </div>
+                        {dao.githubRepo && (
+                          <div>
+                            <label className="block text-daoship-text-gray text-sm mb-1">
+                              GitHub Repository
+                            </label>
+                            <a
+                              href={dao.githubRepo}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-daoship-primary flex items-center hover:underline"
+                            >
+                              <LinkIcon className="w-4 h-4 mr-2" />
+                              {dao.githubRepo}
+                            </a>
+                          </div>
+                        )}
+                      </div>
+                    </GlassmorphicCard>
+                  </motion.div>
+
+                  <motion.div variants={itemVariants}>
+                    <GlassmorphicCard className="p-6">
+                      <h3 className="text-xl font-medium text-white mb-4">
+                        Token Configuration
+                      </h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-daoship-text-gray text-sm mb-1">
+                            Token Name
+                          </label>
+                          <input
+                            type="text"
+                            value={dao.tokenName}
+                            disabled
+                            className="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-white"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-daoship-text-gray text-sm mb-1">
+                            Token Symbol
+                          </label>
+                          <input
+                            type="text"
+                            value={dao.tokenSymbol}
+                            disabled
+                            className="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-white"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-daoship-text-gray text-sm mb-1">
+                            Token Supply ({dao.tokenStrategy} Strategy)
+                          </label>
+                          <input
+                            type="text"
+                            value={dao.tokenSupply.toLocaleString()}
+                            disabled
+                            className="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-white"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-daoship-text-gray text-sm mb-1">
+                            Vote Price
+                          </label>
+                          <input
+                            type="number"
+                            value={dao.votePrice}
+                            disabled
+                            className="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-white"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-daoship-text-gray text-sm mb-1">
+                            Min. Tokens to Participate
+                          </label>
+                          <input
+                            type="number"
+                            value={dao.minTokens}
+                            disabled
+                            className="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-white"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-daoship-text-gray text-sm mb-1">
+                            Min. Contribution for Voting
+                          </label>
+                          <input
+                            type="number"
+                            value={dao.minContributionForVoting}
+                            disabled
+                            className="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-white"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-daoship-text-gray text-sm mb-1">
+                            Vesting Period (days)
+                          </label>
+                          <input
+                            type="number"
+                            value={dao.vestingPeriod}
+                            disabled
+                            className="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-white"
+                          />
+                        </div>
+                      </div>
+                      {dao.tokenStrategy === 'fixed' && (
+                        <div className="mt-6">
+                          <h4 className="text-white font-medium mb-2">Token Allocation:</h4>
+                          <ul className="text-daoship-text-gray text-sm space-y-1">
+                            <li>Initial Distribution: {dao.tokenAllocation.initialDistribution}%</li>
+                            <li>Future Contributors: {dao.tokenAllocation.futureContributors}%</li>
+                            <li>DAO Treasury: {dao.tokenAllocation.treasury}%</li>
+                          </ul>
+                        </div>
+                      )}
+                      <div className="mt-6">
+                        <h4 className="text-white font-medium mb-2">Contribution Rewards:</h4>
+                        <ul className="text-daoship-text-gray text-sm space-y-1">
+                          <li>New PR: {dao.contributionRewards.newPR} tokens</li>
+                          <li>Accepted PR: {dao.contributionRewards.acceptedPR} tokens</li>
+                          <li>Issue Creation: {dao.contributionRewards.issueCreation} tokens</li>
+                          <li>Code Review: {dao.contributionRewards.codeReview} tokens</li>
+                        </ul>
                       </div>
                     </GlassmorphicCard>
                   </motion.div>
@@ -980,13 +1517,13 @@ const DAODashboard = () => {
                           whileHover={{ scale: 1.02 }}
                           whileTap={{ scale: 0.98 }}
                           className="px-4 py-2 bg-daoship-primary/80 hover:bg-daoship-primary rounded-lg text-white flex items-center justify-center disabled:opacity-50"
-                          disabled={true}
+                          disabled={!isDAOAdmin}
                         >
                           <Settings className="w-4 h-4 mr-2" />
                           Edit Parameters
                         </motion.button>
                         <p className="text-xs text-daoship-text-gray mt-2">
-                          * Only DAO administrators can edit these parameters
+                          * Only DAO creator or manager can edit these parameters
                         </p>
                       </div>
                     </GlassmorphicCard>
@@ -1011,6 +1548,7 @@ const DAODashboard = () => {
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
                             className="px-3 py-1 bg-white/10 hover:bg-white/20 rounded-lg text-white text-sm"
+                            disabled={!isDAOAdmin}
                           >
                             Export
                           </motion.button>
@@ -1029,7 +1567,7 @@ const DAODashboard = () => {
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
                             className="px-3 py-1 bg-white/10 hover:bg-white/20 rounded-lg text-white text-sm"
-                            disabled={true}
+                            disabled={!isDAOAdmin}
                           >
                             Transfer
                           </motion.button>
@@ -1048,7 +1586,7 @@ const DAODashboard = () => {
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
                             className="px-3 py-1 bg-red-500/20 hover:bg-red-500/30 rounded-lg text-red-400 text-sm"
-                            disabled={true}
+                            disabled={!isDAOAdmin}
                           >
                             Dissolve
                           </motion.button>

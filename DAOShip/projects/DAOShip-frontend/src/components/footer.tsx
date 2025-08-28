@@ -34,8 +34,8 @@ const Footer = () => {
             <h3 className="text-lg font-semibold text-white mb-4">Connect</h3>
             <ul className="space-y-2">
               <li><a href="https://twitter.com" target="_blank" rel="noopener noreferrer" className="text-daoship-text-gray hover:text-daoship-blue transition-colors">Twitter</a></li>
-              <li><a href="https://discord.com" target="_blank" rel="noopener noreferrer" className="text-daoship-text-gray hover:text-daoship-blue transition-colors">Discord</a></li>
-              <li><a href="https://github.com" target="_blank" rel="noopener noreferrer" className="text-daoship-text-gray hover:text-daoship-blue transition-colors">GitHub</a></li>
+              <li><a href="https://discord.gg/A3XVukbK" target="_blank" rel="noopener noreferrer" className="text-daoship-text-gray hover:text-daoship-blue transition-colors">Discord</a></li>
+              <li><a href="https://github.com/Aniketwarule/DAOShip" target="_blank" rel="noopener noreferrer" className="text-daoship-text-gray hover:text-daoship-blue transition-colors">GitHub</a></li>
             </ul>
           </div>
         </div>
