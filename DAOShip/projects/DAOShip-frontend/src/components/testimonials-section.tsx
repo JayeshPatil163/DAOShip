@@ -9,31 +9,43 @@ const testimonials = [
     quote: "DAOShip made it incredibly easy to set up our community DAO. The process was intuitive and we were up and running in less than an hour.",
     author: "Sarah Johnson",
     title: "Community Lead, AlgoNFT Project",
-    avatar: "https://placehold.co/100x100?text=SJ"
+    avatar: "https://placehold.co/100x100?text=SJ",
+    rating: 5,
   },
   {
     quote: "The governance tools provided by DAOShip have transformed how our collective makes decisions. Everything is transparent and efficient.",
     author: "Michael Chen",
     title: "Founder, Algo Developers Alliance",
-    avatar: "https://placehold.co/100x100?text=MC"
+    avatar: "https://placehold.co/100x100?text=MC",
+    rating: 5,
   },
   {
     quote: "We've tried several DAO platforms, but DAOShip's integration with Algorand offers the best performance and lowest fees by far.",
     author: "Elena Rodriguez",
     title: "Operations Director, DeFi Collective",
-    avatar: "https://placehold.co/100x100?text=ER"
+    avatar: "https://placehold.co/100x100?text=ER",
+    rating: 5,
   },
   {
     quote: "The analytics dashboard gives us incredible insights into our governance process that we didn't have before. Game-changing tool.",
     author: "Thomas Wright",
     title: "Data Analyst, Crypto Research Group",
-    avatar: "https://placehold.co/100x100?text=TW"
+    avatar: "https://placehold.co/100x100?text=TW",
+    rating: 4,
   },
   {
     quote: "DAOShip's token distribution tools made our community launch seamless. Couldn't imagine doing this without their platform.",
     author: "Aisha Patel",
     title: "Community Manager, TokenTech",
-    avatar: "https://placehold.co/100x100?text=AP"
+    avatar: "https://placehold.co/100x100?text=AP",
+    rating: 5,
+  },
+  {
+    quote: "The mobile-first approach and clean UI made it easy for our non-technical members to participate in governance.",
+    author: "Jake Morrison",
+    title: "CTO, BlockChain Gaming Guild",
+    avatar: "https://placehold.co/100x100?text=JM",
+    rating: 5,
   }
 ];
 
@@ -150,9 +162,30 @@ const TestimonialsSection = () => {
                       </svg>
                     </div>
                     
-                    <p className="text-xl md:text-2xl font-light mb-8 text-white leading-relaxed">
+                    <p className="text-xl md:text-2xl font-light mb-6 text-white leading-relaxed">
                       "{testimonial.quote}"
                     </p>
+
+                    {/* Star rating */}
+                    <div className="flex items-center mb-6">
+                      {[...Array(5)].map((_, starIndex) => (
+                        <svg
+                          key={starIndex}
+                          className={`w-5 h-5 ${
+                            starIndex < testimonial.rating
+                              ? 'text-yellow-400'
+                              : 'text-gray-600'
+                          }`}
+                          fill="currentColor"
+                          viewBox="0 0 20 20"
+                        >
+                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                        </svg>
+                      ))}
+                      <span className="ml-2 text-sm text-daoship-text-gray">
+                        ({testimonial.rating}/5)
+                      </span>
+                    </div>
                     
                     <div className="flex items-center">
                       <div className="w-12 h-12 rounded-full overflow-hidden mr-4">

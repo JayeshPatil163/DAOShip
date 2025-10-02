@@ -16,15 +16,15 @@ import {
   FileText,
   Settings,
   ArrowUpRight,
-  User, // Import User icon for creator/manager
-  Link as LinkIcon, // Import Link icon for github repo
-  Coins, // For token details
-  Github, // For GitHub related displays
-  Code, // For contributions
-  GitCommit, // For commits
-  GitPullRequest, // For pull requests
-  Bug, // For issues
-  MessageSquareText, // For code reviews
+  User, 
+  Link as LinkIcon, 
+  Coins, 
+  Github,
+  Code,
+  GitCommit,
+  GitPullRequest,
+  Bug,
+  MessageSquareText,
 } from "lucide-react";
 import Navigation from "@/components/navigation";
 import Footer from "@/components/footer";
@@ -135,7 +135,7 @@ interface DAO {
   updatedAt: string;
 }
 
-const GITHUB_TOKEN = "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"; // REPLACE WITH YOUR ACTUAL TOKEN OR SECURELY FETCH
+const GITHUB_TOKEN = "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";
 
 const DAODashboard = () => {
   const { id } = useParams<{ id: string }>();
@@ -155,7 +155,6 @@ const DAODashboard = () => {
 
   // --- START: Move all helper functions and callbacks here ---
 
-  // Helper to parse GitHub repo owner and name from URL
   const parseGitHubUrl = useCallback((url: string) => {
     try {
       const regex = /github\.com\/([^\/]+)\/([^\/]+)/;

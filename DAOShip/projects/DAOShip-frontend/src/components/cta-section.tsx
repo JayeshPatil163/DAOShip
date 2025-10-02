@@ -46,7 +46,7 @@ const CtaSection = () => {
               onClick={() => navigate("/create-dao")} 
               size="lg"
               glowEffect
-              className="text-xl px-10"
+              className="text-xl px-10 transform transition-transform hover:scale-105"
             >
               Create Your DAO
             </GradientButton>

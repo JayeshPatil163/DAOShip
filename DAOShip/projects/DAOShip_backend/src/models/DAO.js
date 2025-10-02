@@ -1,32 +1,37 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
+
 
 const daoSchema = new mongoose.Schema({
   name: {
     type: String,
     required: true,
-    trim: true
+    trim: true,
   },
   description: {
     type: String,
-    required: true
+    required: true,
   },
   creator: {
     type: String, // Wallet address
-    required: true
+    required: true,
   },
   manager: {
     type: String, // Wallet address
-    required: true
+    required: true,
   },
   contractAddress: {
     type: String,
     required: true,
+    unique: true,
+  },
+  daoId: {
+    type: String, // DAO ID from the smart contract
     unique: true
   },
   votePrice: {
     type: Number,
     required: true,
-    min: 0
+    min: 0,
   },
   tokenName: {
     type: String,
@@ -40,9 +45,14 @@ const daoSchema = new mongoose.Schema({
   tokenSupply: {
     type: Number,
     required: true,
-    min: 1
+    min: 1,
   },
   votingPeriod: {
+    type: Number,
+    required: true,
+    min: 1,
+  },
+  stakingPeriod: {
     type: Number,
     required: true,
     min: 1
@@ -51,16 +61,16 @@ const daoSchema = new mongoose.Schema({
     type: Number,
     required: true,
     min: 1,
-    max: 100
+    max: 100,
   },
   minTokens: {
     type: Number,
     required: true,
-    min: 0
+    min: 0,
   },
   githubRepo: {
     type: String,
-    trim: true
+    trim: true,
   },
   tokenStrategy: {
     type: String,
@@ -89,30 +99,43 @@ const daoSchema = new mongoose.Schema({
     min: 0,
     default: 0
   },
-  invitedCollaborators: [{
-    type: String, // Assuming these are wallet addresses or usernames
-    trim: true
-  }],
-  members: [{
-    type: String, // Wallet addresses
-    required: true
-  }],
+  invitedCollaborators: [
+    {
+      type: String, // Assuming these are wallet addresses or usernames
+      trim: true,
+    },
+  ],
+  members: [
+    {
+      username: {
+        type: String,
+        required: false,
+      },
+      walletAddress: {
+        type: String,
+        required: true,
+      },
+    },
+  ],
+  daoId: {
+    type: Number
+  },
   isActive: {
     type: Boolean,
-    default: true
+    default: true,
   },
   createdAt: {
     type: Date,
-    default: Date.now
+    default: Date.now,
   },
   updatedAt: {
     type: Date,
-    default: Date.now
-  }
+    default: Date.now,
+  },
 });
 
 // Update the updatedAt field before saving
-daoSchema.pre('save', function(next) {
+daoSchema.pre("save", function (next) {
   this.updatedAt = Date.now();
   next();
 });
@@ -123,4 +146,4 @@ daoSchema.index({ manager: 1 });
 daoSchema.index({ contractAddress: 1 });
 daoSchema.index({ name: 1 });
 
-module.exports = mongoose.model('DAO', daoSchema);
+module.exports = mongoose.model("DAO", daoSchema);

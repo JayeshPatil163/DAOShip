@@ -5,6 +5,7 @@ const cors = require("cors");
 const daoRoutes = require("./routes/dao.routes");
 const proposalRoutes = require("./routes/proposal.routes");
 const userRoutes = require("./routes/user.routes");
+const invitationRoutes = require("./routes/invitation.routes");
 
 const app = express();
 
@@ -25,6 +26,7 @@ mongoose
 app.use("/api/dao", daoRoutes);
 app.use("/api/proposal", proposalRoutes);
 app.use("/api/user", userRoutes);
+app.use("/api/invitation", invitationRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

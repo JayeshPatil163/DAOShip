@@ -5,6 +5,7 @@ import GradientButton from "@/components/ui/gradient-button";
 import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
 import { useGitHubAuth } from '@/hooks/useGitHubAuth';
+import { useInvitations } from '@/hooks/useInvitations';
 import {
   Wallet,
   ChevronDown,
@@ -14,6 +15,7 @@ import {
   Sparkles,
   Github,
   ExternalLink,
+  Mail,
 } from "lucide-react";
 import { GithubAuthProvider, signInWithPopup } from "firebase/auth";
 import { auth } from "@/hooks/firebase"; // Ensure this matches your Firebase configuration file path
@@ -26,6 +28,13 @@ import {
 import { formatWalletAddress } from "@/lib/utils";
 
 const Navigation = () => {
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 10);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
   const { toast } = useToast();
   const location = useLocation();
   const [isOpen, setIsOpen] = useState(false);
@@ -46,22 +55,6 @@ const Navigation = () => {
   // Determine if GitHub is connected
   const isGitHubConnected = !!user;
 
-//   const provider = new GithubAuthProvider();
-//   signInWithPopup(auth, provider).then(async (result) => {
-//   const credential = GithubAuthProvider.credentialFromResult(result);
-//   const token = credential?.accessToken;
-
-//   if (token) {
-//     const response = await fetch('https://api.github.com/user', {
-//       headers: {
-//         Authorization: `Bearer ${token}`
-//       }
-//     });
-//     const data = await response.json();
-//     setActualGitHubUsername(data.login); // this is the actual GitHub username
-//   }
-// });
-  
   useEffect(() => {
     if (user) {
       // Set display name for UI
@@ -174,7 +167,7 @@ const Navigation = () => {
       }
     } catch (error) {
       console.error('GitHub connection failed:', error);
-      
+
     } finally {
       setGitHubLoading(false);
     }

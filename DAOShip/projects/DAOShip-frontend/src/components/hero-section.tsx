@@ -66,7 +66,7 @@ const HeroSection = () => {
               Build <span className="text-daoship-purple">Decentralized</span> Communities
             </h1>
             
-            <p className="text-xl md:text-2xl mb-8 text-daoship-text-gray max-w-2xl opacity-80">
+            <p className="text-xl md:text-2xl mb-8 text-daoship-text-gray max-w-2xl leading-relaxed">
               Create, deploy and manage DAOs on Algorand in minutes. Join the decentralized governance revolution without writing a single line of code.
             </p>
             

@@ -3,7 +3,7 @@ import { getAuth, GithubAuthProvider } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBJTzY3DjZrz5ay0rDUA1Uh2Go2l8teBPg",
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY, // add apiKey for the project here
   authDomain: "daoship-24d97.firebaseapp.com",
   projectId: "daoship-24d97",
   storageBucket: "daoship-24d97.firebasestorage.app",

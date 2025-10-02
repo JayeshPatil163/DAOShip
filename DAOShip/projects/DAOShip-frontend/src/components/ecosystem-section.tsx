@@ -7,32 +7,58 @@ const ecosystemItems = [
   {
     name: "Algorand Foundation",
     logo: "https://placehold.co/100x100?text=A",
-    description: "Official foundation supporting the Algorand ecosystem and network growth"
+    description: "Official foundation supporting the Algorand ecosystem and network growth",
+    category: "Infrastructure",
+    status: "active"
   },
   {
     name: "AlgoFi",
     logo: "https://placehold.co/100x100?text=AF",
-    description: "DeFi platform offering lending, borrowing and automated market making"
+    description: "DeFi platform offering lending, borrowing and automated market making",
+    category: "DeFi",
+    status: "active"
   },
   {
     name: "Pera Wallet",
     logo: "https://placehold.co/100x100?text=PW",
-    description: "Mobile wallet for the Algorand blockchain with a focus on simplicity"
+    description: "Mobile wallet for the Algorand blockchain with a focus on simplicity",
+    category: "Wallet",
+    status: "active"
   },
   {
     name: "Algorand NFT Marketplace",
     logo: "https://placehold.co/100x100?text=NFT",
-    description: "Platform for digital collectibles powered by Algorand's technology"
+    description: "Platform for digital collectibles powered by Algorand's technology",
+    category: "NFT",
+    status: "active"
   },
   {
     name: "AlgoDesk",
     logo: "https://placehold.co/100x100?text=AD",
-    description: "Multi-functional tools platform for Algorand blockchain users"
+    description: "Multi-functional tools platform for Algorand blockchain users",
+    category: "Tools",
+    status: "active"
   },
   {
     name: "Tinyman",
     logo: "https://placehold.co/100x100?text=TM",
-    description: "Decentralized exchange built on Algorand blockchain"
+    description: "Decentralized exchange built on Algorand blockchain",
+    category: "DEX",
+    status: "active"
+  },
+  {
+    name: "Folks Finance",
+    logo: "https://placehold.co/100x100?text=FF",
+    description: "Liquid staking and lending protocol on Algorand",
+    category: "DeFi",
+    status: "active"
+  },
+  {
+    name: "Vestige",
+    logo: "https://placehold.co/100x100?text=V",
+    description: "NFT marketplace and creator platform for digital assets",
+    category: "NFT",
+    status: "active"
   }
 ];
 
@@ -102,8 +128,18 @@ const EcosystemSection = () => {
                 )}
                 style={{ transitionDelay: `${index * 100}ms` }}
               >
-                <GlassmorphicCard className="h-full p-6 transition-all duration-300 hover:-translate-y-2 glass-card-hover">
-                  <div className="flex items-center gap-4 mb-4">
+                <GlassmorphicCard className="h-full p-6 transition-all duration-300 hover:-translate-y-2 glass-card-hover relative">
+                  {/* Status indicator */}
+                  <div className="absolute top-4 right-4">
+                    <div className="flex items-center gap-1">
+                      <div className={`w-2 h-2 rounded-full ${
+                        item.status === 'active' ? 'bg-green-400' : 'bg-gray-400'
+                      }`}></div>
+                      <span className="text-xs text-daoship-text-gray capitalize">{item.status}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-4 mb-3">
                     <div className="w-12 h-12 bg-daoship-purple/20 rounded-lg overflow-hidden flex-shrink-0">
                       <img
                         src={item.logo}
@@ -112,9 +148,14 @@ const EcosystemSection = () => {
                         loading="lazy"
                       />
                     </div>
-                    <h3 className="text-lg font-bold text-white">{item.name}</h3>
+                    <div className="flex-1">
+                      <h3 className="text-lg font-bold text-white">{item.name}</h3>
+                      <span className="inline-block px-2 py-1 text-xs font-medium bg-daoship-blue/20 text-daoship-blue rounded-full">
+                        {item.category}
+                      </span>
+                    </div>
                   </div>
-                  <p className="text-sm text-daoship-text-gray">{item.description}</p>
+                  <p className="text-sm text-daoship-text-gray leading-relaxed">{item.description}</p>
                 </GlassmorphicCard>
               </div>
             ))}

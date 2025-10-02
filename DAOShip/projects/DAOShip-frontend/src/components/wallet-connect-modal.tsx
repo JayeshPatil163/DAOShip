@@ -61,6 +61,28 @@ const WalletConnectModal = ({
               onClick={() => handleConnect("WalletConnect")}
               isLoading={connecting === "WalletConnect"}
             />
+
+            <WalletOption
+              name="Defly Wallet"
+              description="Multi-blockchain wallet for DeFi"
+              icon={<Wallet className="h-6 w-6" />}
+              onClick={() => handleConnect("Defly Wallet")}
+              isLoading={connecting === "Defly Wallet"}
+            />
+
+            <WalletOption
+              name="MyAlgo Wallet"
+              description="Web-based Algorand wallet"
+              icon={<Wallet className="h-6 w-6" />}
+              onClick={() => handleConnect("MyAlgo Wallet")}
+              isLoading={connecting === "MyAlgo Wallet"}
+            />
+          </div>
+
+          <div className="mt-4 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-md">
+            <p className="text-xs text-yellow-400 text-center">
+              ⚡ Make sure your wallet is connected to Algorand MainNet
+            </p>
           </div>
 
           <button

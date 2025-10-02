@@ -18,6 +18,10 @@ const proposalSchema = new mongoose.Schema({
     ref: "DAO",
     // required: true,
   },
+  contractAddress: {
+    type: String,
+    // required: true,
+  },
   creator: {
     type: String,
     ref: "User",
@@ -42,11 +46,27 @@ const proposalSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: "User",
       },
+      walletAddress: {
+        type: String,
+        required: true,
+      },
+      githubUsername: {
+        type: String,
+        required: true,
+      },
       vote: {
         type: String,
         enum: ["yes", "no", "abstain"],
+        required: true,
       },
-      votingPower: Number,
+      votingPower: {
+        type: Number,
+        default: 1,
+      },
+      votedAt: {
+        type: Date,
+        default: Date.now,
+      },
     },
   ],
   yesVotes: {

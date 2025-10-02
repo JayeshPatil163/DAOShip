@@ -3,6 +3,7 @@ import React from "react";
 import { Link } from "react-router-dom";
 
 const Footer = () => {
+  const year = new Date().getFullYear();
   return (
     <footer className="bg-black/30 backdrop-blur-lg py-12">
       <div className="container mx-auto px-4">
@@ -38,6 +39,10 @@ const Footer = () => {
               <li><a href="https://github.com/Aniketwarule/DAOShip" target="_blank" rel="noopener noreferrer" className="text-daoship-text-gray hover:text-daoship-blue transition-colors">GitHub</a></li>
             </ul>
           </div>
+        </div>
+        <div className="mt-12 text-center text-daoship-text-gray text-sm">
+          &copy; {year} DAOShip. All rights reserved.
+        </div>
         </div>
         
         <div className="border-t border-white/10 mt-12 pt-6 flex flex-col md:flex-row items-center justify-between">

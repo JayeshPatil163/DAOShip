@@ -8,18 +8,28 @@ const steps = [
     title: "Connect Your Wallet",
     description: "Link your Algorand wallet securely to get started with DAOShip. We support Pera Wallet, MyAlgo and more.",
     delay: 0,
+    icon: "🔗",
   },
   {
-    number: "02",
+    number: "02", 
     title: "Create Your DAO",
     description: "Set up governance parameters, issue your token on Algorand, and customize voting rules to fit your community's needs.",
     delay: 200,
+    icon: "🏗️",
   },
   {
     number: "03",
     title: "Start Governing",
     description: "Create proposals, vote on important decisions, and manage your decentralized community with seamless UX.",
     delay: 400,
+    icon: "🗳️",
+  },
+  {
+    number: "04",
+    title: "Scale & Grow",
+    description: "Invite members, delegate voting power, and expand your community while maintaining transparent governance.",
+    delay: 600,
+    icon: "📈",
   },
 ];
 
@@ -88,9 +98,9 @@ const HowItWorksSection = () => {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-12 relative">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 relative">
           {/* Connecting line */}
-          <div className="hidden md:block absolute top-1/2 left-0 w-full h-0.5 bg-gradient-to-r from-daoship-purple via-daoship-blue to-daoship-mint transform -translate-y-1/2 z-0"></div>
+          <div className="hidden lg:block absolute top-1/2 left-0 w-full h-0.5 bg-gradient-to-r from-daoship-purple via-daoship-blue to-daoship-mint transform -translate-y-1/2 z-0"></div>
           
           {steps.map((step, index) => (
             <div 
@@ -98,14 +108,15 @@ const HowItWorksSection = () => {
               className="step-item opacity-0 translate-y-20 transition-all duration-700 ease-out relative z-10"
               style={{ transitionDelay: `${step.delay}ms` }}
             >
-              <GlassmorphicCard className="p-8 relative">
-                <div className="absolute -top-10 left-1/2 transform -translate-x-1/2 bg-gradient-primary rounded-full w-20 h-20 flex items-center justify-center mb-6 glow-border">
-                  <span className="text-2xl font-bold text-white">{step.number}</span>
+              <GlassmorphicCard className="p-6 relative h-full">
+                <div className="absolute -top-6 left-1/2 transform -translate-x-1/2 bg-gradient-primary rounded-full w-16 h-16 flex items-center justify-center mb-6 glow-border">
+                  <span className="text-3xl">{step.icon}</span>
                 </div>
                 
-                <div className="pt-8">
-                  <h3 className="text-xl font-bold mt-4 mb-4 text-white text-center">{step.title}</h3>
-                  <p className="text-daoship-text-gray text-center">{step.description}</p>
+                <div className="pt-8 text-center">
+                  <span className="text-sm font-mono text-daoship-blue mb-2 block">{step.number}</span>
+                  <h3 className="text-lg font-bold mb-3 text-white">{step.title}</h3>
+                  <p className="text-sm text-daoship-text-gray leading-relaxed">{step.description}</p>
                 </div>
                 
                 {/* Decorative elements */}

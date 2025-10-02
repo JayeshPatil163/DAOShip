@@ -37,7 +37,7 @@ const BenefitsSection = () => {
   return (
     <section ref={sectionRef} className="py-24 relative overflow-hidden">
       {/* Background elements */}
-      <div className="absolute top-0 right-0 w-1/3 h-full bg-gradient-radial from-daoship-purple/10 to-transparent opacity-50"></div>
+      <div className="absolute top-0 right-0 w-1/3 h-full bg-gradient-radial from-daoship-purple/30 to-transparent opacity-70"></div>
       <div className="absolute bottom-0 left-0 w-1/3 h-full bg-gradient-radial from-daoship-mint/10 to-transparent opacity-50"></div>
       
       <div className="container mx-auto px-4">
