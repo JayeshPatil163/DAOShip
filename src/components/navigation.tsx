@@ -40,24 +40,19 @@ const Navigation = () => {
   const [userProfile, setUserProfile] = useState(null);
   const [gitHubLoading, setGitHubLoading] = useState(false);
 
-  // Use the GitHub auth hook
   const { user, connectGitHub, disconnectGitHub, getUserData, loading: authLoading } = useGitHubAuth();
 
-  // Determine if GitHub is connected
   const isGitHubConnected = !!user;
 
   useEffect(() => {
     if (user) {
-      // Set display name for UI
       setGithubUsername(user.displayName || user.email?.split('@')[0] || 'User');
 
-      // Extract actual GitHub username from providerData or additionalUserInfo
       const githubProvider = user.providerData?.find(provider => provider.providerId === 'github.com');
       if (githubProvider) {
         setActualGitHubUsername(githubProvider.uid || githubProvider.displayName || '');
       }
 
-      // Fetch additional user data from Firestore if needed
       fetchUserProfile(user.uid);
     } else {
       setGithubUsername('');
@@ -83,7 +78,6 @@ const Navigation = () => {
     setIsGitHubMenuOpen(!isGitHubMenuOpen);
   };
 
-  // Close menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (isGitHubMenuOpen && !event.target.closest('.github-menu-container')) {
@@ -100,7 +94,6 @@ const Navigation = () => {
     };
   }, [isGitHubMenuOpen, isProfileMenuOpen]);
 
-  // Check if user has scrolled
   useEffect(() => {
     const handleScroll = () => {
       if (window.scrollY > 10) {
@@ -116,12 +109,10 @@ const Navigation = () => {
     };
   }, []);
 
-  // Close mobile menu when route changes
   useEffect(() => {
     setIsOpen(false);
   }, [location]);
 
-  // Initialize wallet on component mount
   useEffect(() => {
     const initWallet = async () => {
       const address = await getWalletAddress();
